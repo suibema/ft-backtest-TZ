@@ -215,7 +215,7 @@ document.getElementById("submitFile3")?.addEventListener("click", () =>
 );
 
 document.getElementById("skipFile2")?.addEventListener("click", () =>
-  showScreen("result")
+  showScreen("upload3")
 );
 
 document.getElementById("skipFile3")?.addEventListener("click", async () => {
