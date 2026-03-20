@@ -64,7 +64,6 @@ function showScreen(id) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  showScreen('welcome');
   initializeForm();
 });
 
