@@ -139,7 +139,7 @@ async function showProgress(barId, statusId) {
       tg.expand();
       userPlatform = "tg";
       platformUserId = telegramUserId;
-    } else if (window.vkBridge) {
+    } else if (!telegramUserId) {
       const bridge = window.vkBridge;
       await bridge.send("VKWebAppInit");
       const vkUser = await bridge.send("VKWebAppGetUserInfo");
