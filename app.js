@@ -82,10 +82,6 @@ async function initializeForm() {
     console.log('VK Mini App initialized');
   } catch (err) {
     console.error('VK init error:', err);
-    const errorEl = document.getElementById('reg-error');
-    if (errorEl) {
-      errorEl.textContent = 'Ошибка инициализации VK: ' + err.message;
-    }
   }
 }
 
