@@ -6,8 +6,37 @@
   <title>Загрузка решений</title>
   <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
+  <script>
+    (async () => {
+      try {
+        await vkBridge.send('VKWebAppInit');
+
+        const u = await vkBridge.send('VKWebAppGetUserInfo');
+        console.log(u);
+        window.vkId = u.id
+
+        const { access_token } = await vkBridge.send('VKWebAppGetAuthToken', {
+          app_id: 54443582,
+          scope: ''
+        });
+
+        const apiResp = await vkBridge.send('VKWebAppCallAPIMethod', {
+          method: 'users.get',
+          params: { v: '5.199', access_token }
+        });
+        console.log('users.get raw:', apiResp);
+
+        const launch = await vkBridge.send('VKWebAppGetLaunchParams');
+        console.log('Launch (bridge):', launch);
+
+      } catch (e) {
+        console.error('Bridge error:', e);
+        document.getElementById('user').textContent = 'Error: ' + (e?.message || e);
+      }
+    })();
+  </script>
 </head>
-<body>>
+<body>
 
   <!-- Оригинальные экраны (будут заменены сообщением о техработах через JS) -->
   <div class="screen" id="welcomeScreen">
