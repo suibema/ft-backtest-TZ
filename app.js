@@ -42,6 +42,10 @@ if (MAINTENANCE_MODE) {
 
 // ======================= ORIGINAL APP CODE =======================
 
+console.log("app.js loaded");
+console.log("window.vkBridge =", window.vkBridge);
+console.log("window.Telegram =", window.Telegram);
+
 const WEBHOOK_URL = "https://webhooks.fut.ru/ft-dispather/requests";
 const STAGE_NAME = "Таблица (вид) - ТЗ";
 
@@ -63,10 +67,6 @@ function showScreen(id) {
   screens[id]?.classList.remove("hidden");
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  initializeForm();
-});
-
 function showError(msg) {
   document.body.innerHTML = `<div style="padding:50px;text-align:center;color:white;">
         <h2>Ошибка</h2>
@@ -75,14 +75,37 @@ function showError(msg) {
     </div>`;
 }
 
-async function initializeForm() {
+async function initializeApp() {
   try {
-    await vkBridge.send('VKWebAppInit');
-    console.log('VK Mini App initialized');
+    const telegramUserId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+
+    if (telegramUserId) {
+      const tg = window.Telegram.WebApp;
+      tg.ready();
+      tg.expand();
+      userPlatform = "tg";
+      platformUserId = telegramUserId;
+      console.log("Telegram initialized", platformUserId);
+    } else if (window.vkBridge) {
+      await window.vkBridge.send("VKWebAppInit");
+      const vkUser = await window.vkBridge.send("VKWebAppGetUserInfo");
+      userPlatform = "vk";
+      platformUserId = vkUser?.id || null;
+      console.log("VK initialized", platformUserId);
+    } else {
+      throw new Error("Платформа не определена: не Telegram и не VK");
+    }
+
+    showScreen("welcome");
   } catch (err) {
-    console.error('VK init error:', err);
+    console.error("Init error:", err);
+    showError(err.message || "Ошибка приложения");
   }
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+  initializeApp();
+});
 
 async function sendFiles() {
   const form = new FormData();
