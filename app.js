@@ -73,10 +73,15 @@ function showError(msg) {
 
 async function sendFiles() {
   const form = new FormData();
-  form.append("params[tg_id]", String(platformUserId || ""));
+
+  if (userPlatform === "tg") {
+    form.append("params[tg_id]", String(platformUserId || ""));
+  } else if (userPlatform === "vk") {
+    form.append("params[vk_id]", String(platformUserId || ""));
+  }
+
   form.append("params[stage_name]", STAGE_NAME);
   form.append("params[deadline_tz_1]", new Date().toISOString());
-  
 
   if (selectedFiles[1]) form.append("params[file_1]", selectedFiles[1]);
   if (selectedFiles[2]) form.append("params[file_2]", selectedFiles[2]);
@@ -86,6 +91,14 @@ async function sendFiles() {
     method: "POST",
     body: form,
   });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error("Ошибка отправки: " + res.status + " " + text);
+  }
+
+  return res;
+}
 
   if (!res.ok) {
     const text = await res.text();
