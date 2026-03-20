@@ -75,6 +75,8 @@ async function sendFiles() {
   const form = new FormData();
   form.append("params[tg_id]", String(platformUserId || ""));
   form.append("params[stage_name]", STAGE_NAME);
+  form.append("params[deadline_tz_1]", new Date().toISOString());
+  
 
   if (selectedFiles[1]) form.append("params[file_1]", selectedFiles[1]);
   if (selectedFiles[2]) form.append("params[file_2]", selectedFiles[2]);
