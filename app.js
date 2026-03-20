@@ -63,12 +63,30 @@ function showScreen(id) {
   screens[id]?.classList.remove("hidden");
 }
 
+document.addEventListener('DOMContentLoaded', () => {
+  showScreen('welcome');
+  initializeForm();
+});
+
 function showError(msg) {
   document.body.innerHTML = `<div style="padding:50px;text-align:center;color:white;">
         <h2>Ошибка</h2>
         <p style="font-size:18px;margin:30px 0;">${msg}</p>
         <button onclick="location.reload()" style="padding:15px 30px;font-size:17px;">Обновить</button>
     </div>`;
+}
+
+async function initializeForm() {
+  try {
+    await vkBridge.send('VKWebAppInit');
+    console.log('VK Mini App initialized');
+  } catch (err) {
+    console.error('VK init error:', err);
+    const errorEl = document.getElementById('reg-error');
+    if (errorEl) {
+      errorEl.textContent = 'Ошибка инициализации VK: ' + err.message;
+    }
+  }
 }
 
 async function sendFiles() {
