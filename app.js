@@ -100,14 +100,6 @@ async function sendFiles() {
   return res;
 }
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error("Ошибка отправки: " + res.status + " " + text);
-  }
-
-  return res;
-}
-
 // Прогресс-бар
 async function showProgress(barId, statusId) {
   const bar = document.getElementById(barId);
