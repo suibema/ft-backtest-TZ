@@ -1,7 +1,6 @@
 // ======================= MAINTENANCE MODE =======================
-// Пока идут техработы — показываем только сообщение и ничего не запускаем.
 
-const MAINTENANCE_MODE = false; // <- выключите на false, когда техработы закончатся
+const MAINTENANCE_MODE = false;
 
 function showMaintenance() {
   document.body.innerHTML = `
@@ -40,16 +39,14 @@ if (MAINTENANCE_MODE) {
   throw new Error("Maintenance mode enabled");
 }
 
-// ======================= ORIGINAL APP CODE =======================
+// ======================= APP =======================
 
-console.log("app.js loaded");
-console.log("window.vkBridge =", window.vkBridge);
+console.log("app-tg.js loaded");
 console.log("window.Telegram =", window.Telegram);
 
 const WEBHOOK_URL = "https://webhooks.fut.ru/ft-dispather/requests";
 const STAGE_NAME = "Таблица (вид) - ТЗ";
 
-let userPlatform = null;
 let platformUserId = null;
 const uploadState = { 1: false, 2: false, 3: false };
 const selectedFiles = { 1: null, 2: null, 3: null };
@@ -69,53 +66,42 @@ function showScreen(id) {
 
 function showError(msg) {
   document.body.innerHTML = `<div style="padding:50px;text-align:center;color:white;">
-        <h2>Ошибка</h2>
-        <p style="font-size:18px;margin:30px 0;">${msg}</p>
-        <button onclick="location.reload()" style="padding:15px 30px;font-size:17px;">Обновить</button>
-    </div>`;
+    <h2>Ошибка</h2>
+    <p style="font-size:18px;margin:30px 0;">${msg}</p>
+    <button onclick="location.reload()" style="padding:15px 30px;font-size:17px;">Обновить</button>
+  </div>`;
 }
 
-async function initializeApp() {
+function initTelegramApp() {
+  const tg = window.Telegram?.WebApp;
+  const telegramUserId = tg?.initDataUnsafe?.user?.id || null;
+
+  if (!tg || !telegramUserId) {
+    throw new Error("Telegram WebApp не найден. Откройте мини-апп из Telegram.");
+  }
+
+  tg.ready();
+  tg.expand();
+
+  platformUserId = telegramUserId;
+
+  console.log("Telegram initialized", platformUserId);
+  showScreen("welcome");
+}
+
+document.addEventListener("DOMContentLoaded", () => {
   try {
-    const telegramUserId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-
-    if (telegramUserId) {
-      const tg = window.Telegram.WebApp;
-      tg.ready();
-      tg.expand();
-      userPlatform = "tg";
-      platformUserId = telegramUserId;
-      console.log("Telegram initialized", platformUserId);
-    } else if (window.vkBridge) {
-      await window.vkBridge.send("VKWebAppInit");
-      const vkUser = await window.vkBridge.send("VKWebAppGetUserInfo");
-      userPlatform = "vk";
-      platformUserId = vkUser?.id || null;
-      console.log("VK initialized", platformUserId);
-    } else {
-      throw new Error("Платформа не определена: не Telegram и не VK");
-    }
-
-    showScreen("welcome");
+    initTelegramApp();
   } catch (err) {
     console.error("Init error:", err);
     showError(err.message || "Ошибка приложения");
   }
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  initializeApp();
 });
 
 async function sendFiles() {
   const form = new FormData();
 
-  if (userPlatform === "tg") {
-    form.append("params[tg_id]", String(platformUserId || ""));
-  } else if (userPlatform === "vk") {
-    form.append("params[vk_id]", String(platformUserId || ""));
-  }
-
+  form.append("params[tg_id]", String(platformUserId || ""));
   form.append("params[stage_name]", STAGE_NAME);
   form.append("params[deadline_tz_1]", new Date().toISOString());
 
@@ -136,60 +122,31 @@ async function sendFiles() {
   return res;
 }
 
-// Прогресс-бар
 async function showProgress(barId, statusId) {
   const bar = document.getElementById(barId);
   const status = document.getElementById(statusId);
   let p = 0;
-  return new Promise((res) => {
+
+  return new Promise((resolve) => {
     const int = setInterval(() => {
       p += 15 + Math.random() * 25;
+
       if (p >= 100) {
         p = 100;
         clearInterval(int);
         status.textContent = "Готово!";
-        res();
+        resolve();
       }
+
       bar.style.width = p + "%";
       status.textContent = `Загрузка ${Math.round(p)}%`;
     }, 100);
   });
 }
 
-// ======================= ЗАПУСК =======================
-(async () => {
-  try {
-    const telegramUserId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-
-    if (telegramUserId) {
-      const tg = window.Telegram.WebApp;
-      tg.ready();
-      tg.expand();
-      userPlatform = "tg";
-      platformUserId = telegramUserId;
-    } else if (!telegramUserId) {
-      const bridge = window.vkBridge;
-      await bridge.send("VKWebAppInit");
-      const vkUser = await bridge.send("VKWebAppGetUserInfo");
-      userPlatform = "vk";
-      platformUserId = vkUser?.id || null;
-    } else {
-      throw new Error(
-        "Платформа не определена (ни Telegram с initData, ни vkBridge). Откройте мини-апп из бота или VK."
-      );
-    }
-
-    showScreen("welcome");
-  } catch (err) {
-    console.error(err);
-    showError(err.message || "Ошибка приложения");
-  }
-})();
-
-// ======================= КНОПКИ =======================
-document.getElementById("startUpload")?.addEventListener("click", () =>
-  showScreen("upload1")
-);
+document.getElementById("startUpload")?.addEventListener("click", () => {
+  showScreen("upload1");
+});
 
 async function handleUpload(num, nextScreen = null) {
   if (uploadState[num]) {
@@ -200,14 +157,16 @@ async function handleUpload(num, nextScreen = null) {
   const input = document.getElementById(`fileInput${num}`);
   const err = document.getElementById(`error${num}`);
   const btn = document.getElementById(`submitFile${num}`);
-  const file = input.files[0];
-  err.classList.add("hidden");
+  const file = input?.files?.[0];
+
+  err?.classList.add("hidden");
 
   if (!file) {
     err.textContent = "Выберите файл";
     err.classList.remove("hidden");
     return;
   }
+
   if (file.size > 15 * 1024 * 1024) {
     err.textContent = "Файл больше 15 МБ";
     err.classList.remove("hidden");
@@ -215,6 +174,7 @@ async function handleUpload(num, nextScreen = null) {
   }
 
   uploadState[num] = true;
+
   if (btn) {
     btn.disabled = true;
     btn.dataset.originalText = btn.textContent;
@@ -238,6 +198,7 @@ async function handleUpload(num, nextScreen = null) {
     err.classList.remove("hidden");
   } finally {
     uploadState[num] = false;
+
     if (btn) {
       btn.disabled = false;
       if (btn.dataset.originalText) {
@@ -250,9 +211,11 @@ async function handleUpload(num, nextScreen = null) {
 document.getElementById("submitFile1")?.addEventListener("click", () =>
   handleUpload(1, "upload2")
 );
+
 document.getElementById("submitFile2")?.addEventListener("click", () =>
   handleUpload(2, "upload3")
 );
+
 document.getElementById("submitFile3")?.addEventListener("click", () =>
   handleUpload(3)
 );
@@ -263,6 +226,7 @@ document.getElementById("skipFile2")?.addEventListener("click", () =>
 
 document.getElementById("skipFile3")?.addEventListener("click", async () => {
   const err = document.getElementById("error3");
+
   try {
     err?.classList.add("hidden");
     await sendFiles();
@@ -277,9 +241,7 @@ document.getElementById("skipFile3")?.addEventListener("click", async () => {
 });
 
 document.getElementById("closeApp")?.addEventListener("click", () => {
-  if (userPlatform === "vk" && window.vkBridge) {
-    window.vkBridge.send("VKWebAppClose", { status: "success" });
-  } else if (window.Telegram?.WebApp) {
+  if (window.Telegram?.WebApp) {
     window.Telegram.WebApp.close();
   }
 });
